@@ -538,3 +538,24 @@ def test_compile_with_export_binaries_config(run_command, data_dir, downloads_di
     assert (sketch_path / "build" / fqbn.replace(":", ".") / f"{sketch_name}.ino.hex").exists()
     assert (sketch_path / "build" / fqbn.replace(":", ".") / f"{sketch_name}.ino.with_bootloader.bin").exists()
     assert (sketch_path / "build" / fqbn.replace(":", ".") / f"{sketch_name}.ino.with_bootloader.hex").exists()
+
+
+def test_compile_with_custom_libraries(run_command, copy_sketch):
+    # Init the environment explicitly
+    assert run_command("update")
+
+    # Creates config with additional URL to install necessary core
+    url = "http://arduino.esp8266.com/stable/package_esp8266com_index.json"
+    assert run_command(f"config init --additional-urls {url}")
+
+    # Install core to compile
+    assert run_command("core install esp8266:esp8266")
+
+    sketch_path = copy_sketch("sketch_with_multiple_custom_libraries")
+    fqbn = "esp8266:esp8266:nodemcu:xtal=80,vt=heap,eesz=4M1M,wipe=none,baud=115200"
+
+    first_lib = Path(sketch_path, "libraries", "Lib1")
+    second_lib = Path(sketch_path, "libraries", "Lib2")
+    # This compile command has been taken from this issue:
+    # https://github.com/arduino/arduino-cli/issues/973
+    assert run_command(f"compile --libraries {first_lib},{second_lib} -b {fqbn} {sketch_path}")
